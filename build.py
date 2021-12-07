@@ -32,6 +32,7 @@
 
 import argparse
 import os
+import os.path
 import platform
 import sys
 import subprocess
@@ -39,24 +40,17 @@ import re
 import multiprocessing
 
 root = os.path.abspath(os.path.dirname(__file__))
-third_party_names = ["libicu", "libxml", "openssl", "zlib"]
+third_party_names = ["libicu", "libxml", "zlib"]
 third_party_path = os.path.join(root, "src", "qt", "3rdparty")
 
-openssl_search_paths = [{
-  "name": "Brew",
-  "header": "/usr/local/opt/openssl/include/openssl/opensslv.h",
-  "flags": [
-    "-I/usr/local/opt/openssl/include",
-    "-L/usr/local/opt/openssl/lib"
-  ]
-}, {
-  "name": "MacPorts",
-  "header": "/opt/local/include/openssl/opensslv.h",
-  "flags": [
-    "-I/opt/local/include",
-    "-L/opt/local/lib"
-  ]
-}]
+#openssl_search_paths = [{
+#  "name": "UseLocalSSLLibHack",
+#  "header": os.path.join(os.getcwd(), "openssl-1.0.2u/sslinstall/include/openssl/opensslv.h"),
+#  "flags": [
+#      "-I" + os.path.join(os.getcwd(), "openssl-1.0.2u/sslinstall/include"),
+#      "-L" + os.path.join(os.getcwd(), "openssl-1.0.2u/sslinstall/lib")
+#  ]
+#}]
 
 # check if path points to an executable
 # source: http://stackoverflow.com/a/377028
@@ -79,20 +73,7 @@ def which(program):
 # returns the path to the QMake executable which gets built in our internal QtBase fork
 def qmakePath():
     exe = "qmake"
-    if platform.system() == "Windows":
-        exe += ".exe"
-    return os.path.abspath("src/qt/qtbase/bin/" + exe)
-
-# returns paths for 3rd party libraries (Windows only)
-def findThirdPartyDeps():
-    include_dirs = []
-    lib_dirs = []
-    for dep in third_party_names:
-        include_dirs.append("-I")
-        include_dirs.append(os.path.join(third_party_path, dep, "include"))
-        lib_dirs.append("-L")
-        lib_dirs.append(os.path.join(third_party_path, dep, "lib"))
-    return (include_dirs, lib_dirs)
+    return os.path.join(os.getcwd(),"src/qt/qtbase/bin/" + exe)
 
 class PhantomJSBuilder(object):
     options = {}
@@ -102,26 +83,15 @@ class PhantomJSBuilder(object):
         self.options = options
 
         # setup make command or equivalent with arguments
-        if platform.system() == "Windows":
-            makeExe = which("jom.exe")
-            if not makeExe:
-                makeExe = "nmake"
-            self.makeCommand = [makeExe, "/NOLOGO"]
-        else:
-            flags = []
-            if self.options.jobs:
-                # number of jobs explicitly given
-                flags = ["-j", self.options.jobs]
-            elif not re.match("-j\s*[0-9]+", os.getenv("MAKEFLAGS", "")):
-                # if the MAKEFLAGS env var does not contain any "-j N", set a sane default
-                flags = ["-j", multiprocessing.cpu_count()]
-            self.makeCommand = ["make"]
-            self.makeCommand.extend(flags)
-
-        # if there is no git subdirectory, automatically go into no-git
-        # mode
-        if not os.path.isdir(".git"):
-            self.options.skip_git = True
+        flags = []
+        if self.options.jobs:
+            # number of jobs explicitly given
+            flags = ["-j", self.options.jobs]
+        elif not re.match("-j\s*[0-9]+", os.getenv("MAKEFLAGS", "")):
+            # if the MAKEFLAGS env var does not contain any "-j N", set a sane default
+            flags = ["-j", multiprocessing.cpu_count()]
+        self.makeCommand = ["make"]
+        self.makeSslCommand = ["makeall"]
 
     # run the given command in the given working directory
     def execute(self, command, workingDirectory):
@@ -134,11 +104,6 @@ class PhantomJSBuilder(object):
         process = subprocess.Popen(command, stdout=sys.stdout, stderr=sys.stderr, cwd=workingDirectory)
         process.wait()
         return process.returncode
-
-    # run git clean in the specified path
-    def gitClean(self, path):
-        if self.options.skip_git: return 0
-        return self.execute(["git", "clean", "-xfd"], path)
 
     # run make, nmake or jom in the specified path
     def make(self, path):
@@ -159,91 +124,91 @@ class PhantomJSBuilder(object):
 
     # returns a list of platform specific Qt Base configure options
     def platformQtConfigureOptions(self):
-        platformOptions = []
-        if platform.system() == "Windows":
-            platformOptions = [
-                "-mp",
-                "-static-runtime",
-                "-no-cetest",
-                "-no-angle",
-                "-icu",
-                "-openssl",
-                "-openssl-linked",
-            ]
-            deps = findThirdPartyDeps()
-            platformOptions.extend(deps[0])
-            platformOptions.extend(deps[1])
+        # Unix platform options
+        platformOptions = [
+            # use the headless QPA platform
+            "-qpa", "phantom",
+            # explicitly compile with SSL support, so build will fail if headers are missing
+            "-openssl", "-openssl-linked",
+            # disable unnecessary Qt features
+            "-no-openvg",
+            "-no-eglfs",
+            "-no-egl",
+            "-no-glib",
+            "-no-gtkstyle",
+            "-no-cups",
+            "-no-sm",
+            "-no-xinerama",
+            "-no-xkb",
+            "-no-xcb",
+            "-no-kms",
+            "-no-linuxfb",
+            "-no-directfb",
+            "-no-mtdev",
+            "-no-libudev",
+            "-no-evdev",
+            "-no-pulseaudio",
+            "-no-alsa",
+            "-no-feature-PRINTPREVIEWWIDGET",
+            "-I" + os.path.join(os.getcwd(),"openssl-1.0.2u/sslinstall/include"),
+            "-L" + os.path.join(os.getcwd(),"openssl-1.0.2u/sslinstall/lib")
+        ]
+
+        if platform.system() == "Darwin":
+            # Mac OS specific options
+            # NOTE: fontconfig is not required on Darwin (we use Core Text for font enumeration)
+            platformOptions.extend([
+                "-no-pkg-config",
+                "-no-c++11", # Build fails on mac right now with C++11 TODO: is this still valid?
+            ])
+            # Dirty hack to find OpenSSL libs
+            # FORCE IGNORE SYSTEM SSL LIBS 
+            #openssl =  ""
+            #if openssl == "":
+              # search for OpenSSL
+            #  openssl_found = False
+            #  for search_path in openssl_search_paths:
+            #      if os.path.exists(search_path["header"]):
+            #          openssl_found = True
+            #          platformOptions.extend(search_path["flags"])
+            #          print("Found OpenSSL installed via %s" % search_path["name"])
+
+             # if not openssl_found:
+             #     raise RuntimeError("Could not find OpenSSL")
+             # else:
+             #     # TODO: Implement
+             #     raise RuntimeError("Not implemented")
         else:
-            # Unix platform options
-            platformOptions = [
-                # use the headless QPA platform
-                "-qpa", "phantom",
-                # explicitly compile with SSL support, so build will fail if headers are missing
-                "-openssl", "-openssl-linked",
-                # disable unnecessary Qt features
-                "-no-openvg",
-                "-no-eglfs",
-                "-no-egl",
-                "-no-glib",
-                "-no-gtkstyle",
-                "-no-cups",
-                "-no-sm",
-                "-no-xinerama",
-                "-no-xkb",
-                "-no-xcb",
-                "-no-kms",
-                "-no-linuxfb",
-                "-no-directfb",
-                "-no-mtdev",
-                "-no-libudev",
-                "-no-evdev",
-                "-no-pulseaudio",
-                "-no-alsa",
-                "-no-feature-PRINTPREVIEWWIDGET"
-            ]
-
-            if self.options.silent:
-                platformOptions.append("-silent")
-
-            if platform.system() == "Darwin":
-                # Mac OS specific options
-                # NOTE: fontconfig is not required on Darwin (we use Core Text for font enumeration)
-                platformOptions.extend([
-                    "-no-pkg-config",
-                    "-no-c++11", # Build fails on mac right now with C++11 TODO: is this still valid?
-                ])
+            # options specific to other Unixes, like Linux, BSD, ...
+            platformOptions.extend([
+                "-fontconfig", # Fontconfig for better font matching
+                "-icu", # ICU for QtWebKit (which provides the OSX headers) but not QtBase
+            ])
                 # Dirty hack to find OpenSSL libs
-                openssl = os.getenv("OPENSSL", "")
-                if openssl == "":
+                # FORCE IGNORE SYSTEM SSL LIBS openssl = os.getenv("OPENSSL", "")
+           #     openssl = ""
+           #     if openssl == "":
                   # search for OpenSSL
-                  openssl_found = False
-                  for search_path in openssl_search_paths:
-                    if os.path.exists(search_path["header"]):
-                      openssl_found = True
-                      platformOptions.extend(search_path["flags"])
-                      print("Found OpenSSL installed via %s" % search_path["name"])
+           #       openssl_found = False
+           #       for search_path in openssl_search_paths:
+           #         if os.path.exists(search_path["header"]):
+           #           openssl_found = True
+           #           platformOptions.extend(search_path["flags"])
+           #           print("Found OpenSSL installed via %s" % search_path["name"])
 
-                  if not openssl_found:
-                    raise RuntimeError("Could not find OpenSSL")
-                else:
-                  # TODO: Implement
-                  raise RuntimeError("Not implemented")
-            else:
-                # options specific to other Unixes, like Linux, BSD, ...
-                platformOptions.extend([
-                    "-fontconfig", # Fontconfig for better font matching
-                    "-icu", # ICU for QtWebKit (which provides the OSX headers) but not QtBase
-                ])
+           #       if not openssl_found:
+           #         raise RuntimeError("Could not find OpenSSL")
+
+        print (platformOptions)
+        #exit()
         return platformOptions
-
+    
     # configure Qt Base
     def configureQtBase(self):
         print("configuring Qt Base, please wait...")
 
         configureExe = os.path.abspath("src/qt/qtbase/configure")
-        if platform.system() == "Windows":
-            configureExe += ".bat"
-
+        
         configure = [configureExe,
             "-static",
             "-opensource",
@@ -273,6 +238,7 @@ class PhantomJSBuilder(object):
             "-D", "QT_NO_PRINTPREVIEWDIALOG"
         ]
         configure.extend(self.platformQtConfigureOptions())
+        
         if self.options.qt_config:
             configure.extend(self.options.qt_config)
 
@@ -293,10 +259,7 @@ class PhantomJSBuilder(object):
             print("Skipping build of Qt Base")
             return
 
-        if self.options.git_clean_qtbase:
-            self.gitClean("src/qt/qtbase")
-
-        if self.options.git_clean_qtbase or not self.options.skip_configure_qtbase:
+        if not self.options.skip_configure_qtbase:
             self.configureQtBase()
 
         print("building Qt Base, please wait...")
@@ -308,9 +271,6 @@ class PhantomJSBuilder(object):
         if self.options.skip_qtwebkit:
             print("Skipping build of Qt WebKit")
             return
-
-        if self.options.git_clean_qtwebkit:
-            self.gitClean("src/qt/qtwebkit")
 
         os.putenv("SQLITE3SRCDIR", os.path.abspath("src/qt/qtbase/src/3rdparty/sqlite"))
 
@@ -343,17 +303,8 @@ class PhantomJSBuilder(object):
         if self.make(".") != 0:
             raise RuntimeError("Building PhantomJS failed.")
 
-    # ensure the git submodules are all available
-    def ensureSubmodulesAvailable(self):
-        if self.options.skip_git: return
-        if self.execute(["git", "submodule", "init"], ".") != 0:
-            raise RuntimeError("Initialization of git submodules failed.")
-        if self.execute(["git", "submodule", "update", "--init"], ".") != 0:
-            raise RuntimeError("Initial update of git submodules failed.")
-
     # run all build steps required to get a final PhantomJS binary at the end
     def run(self):
-        self.ensureSubmodulesAvailable();
         self.buildQtBase()
         self.buildQtWebKit()
         self.buildPhantomJS()
@@ -373,9 +324,6 @@ def parseArguments():
                             help="Only print what would be done without actually executing anything.")
 
     # NOTE: silent build does not exist on windows apparently
-    if platform.system() != "Windows":
-        parser.add_argument("-s", "--silent", action="store_true",
-                            help="Reduce output during compilation.")
 
     advanced = parser.add_argument_group("advanced options")
     advanced.add_argument("--qmake-args", type=str, action="append",
@@ -386,12 +334,6 @@ def parseArguments():
                             help="Additional arguments that will be passed to the PhantomJS QMake call.")
     advanced.add_argument("--qt-config", type=str, action="append",
                             help="Additional arguments that will be passed to Qt Base configure.")
-    advanced.add_argument("--git-clean-qtbase", action="store_true",
-                            help="Run git clean in the Qt Base folder.\n"
-                                 "ATTENTION: This will remove all untracked files!")
-    advanced.add_argument("--git-clean-qtwebkit", action="store_true",
-                            help="Run git clean in the Qt WebKit folder.\n"
-                                 "ATTENTION: This will remove all untracked files!")
     advanced.add_argument("--skip-qtbase", action="store_true",
                             help="Skip Qt Base completely and do not build it.\n"
                                  "Only enable this option when Qt Base was built "
@@ -408,9 +350,6 @@ def parseArguments():
                             help="Skip configure step of Qt WebKit, only build it.\n"
                                  "Only enable this option when neither the environment nor Qt Base "
                                  "has changed and only an update of Qt WebKit is required.")
-    advanced.add_argument("--skip-git", action="store_true",
-                            help="Skip all actions that require Git.  For use when building from "
-                                 "a tarball release.")
     options = parser.parse_args()
     if options.debug and options.release:
         raise RuntimeError("Cannot build with both debug and release mode enabled.")
@@ -423,29 +362,6 @@ def main():
 
     try:
         options = parseArguments()
-        if not options.confirm:
-            print("""\
-----------------------------------------
-               WARNING
-----------------------------------------
-
-Building PhantomJS from source takes a very long time, anywhere from 30 minutes
-to several hours (depending on the machine configuration). It is recommended to
-use the premade binary packages on supported operating systems.
-
-For details, please go the the web site: http://phantomjs.org/download.html.
-""")
-            while True:
-                sys.stdout.write("Do you want to continue (Y/n)? ")
-                sys.stdout.flush()
-                answer = sys.stdin.readline().strip().lower()
-                if answer == "n":
-                    print("Cancelling PhantomJS build.")
-                    return
-                elif answer == "y" or answer == "":
-                    break
-                else:
-                    print("Invalid answer, try again.")
 
         builder = PhantomJSBuilder(options)
         builder.run()

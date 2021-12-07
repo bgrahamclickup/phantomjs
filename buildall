@@ -1,0 +1,19 @@
+#!/bin/sh
+set xe
+echo 'Building all'
+
+git checkout 2.1.1
+git submodule init
+git submodule update
+
+echo 'Building OpenSSL'
+
+#$(cd ./openssl-1.0.2u && ./makeall)
+
+if $? != 0; then
+    echo 'Building SSL Fail!!!'
+    exit 1
+fi
+
+echo 'Building Phaontomjs'
+#python build.py
