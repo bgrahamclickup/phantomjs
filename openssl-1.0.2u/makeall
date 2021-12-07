@@ -2,9 +2,27 @@
 
 echo 'Building, testing, and local-installing openssl'
 
-echo 'Configuring openssl'
-./config --prefix=$PWD/sslinstall --openssldir=$PWD/sslinstall
+if [ $(uname) == 'Darwin' ]; then
+  echo 'Darwin detected, do you want to build intel64 or arm64 (i or a): \c'
 
+  read type
+
+  if [ $type == 'i' ]; then
+    echo 'Configuring for Darwin Intel'
+    ./Configure darwin64-x86_64-cc --prefix=$PWD/sslinstall --openssldir=$PWD/sslinstall
+  elif [ $type == 'a' ]; then
+    echo 'Configuring for Darwin Arm'
+    ./config --prefix=$PWD/sslinstall --openssldir=$PWD/sslinstall enable-rc5 zlib darwin64-arm64-cc no-asm
+  else
+    echo 'Bad input...bailing'
+    exit 1
+  fi
+else 
+  echo 'Configuring openssl for Linux'
+  ./config --prefix=$PWD/sslinstall --openssldir=$PWD/sslinstall
+fi
+
+exit
 echo 'Building openssl'
 make
 
