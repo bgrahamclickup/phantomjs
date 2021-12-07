@@ -26,7 +26,7 @@ if [ $? != 0 ]; then
 else
   sudo add-apt-repository multiverse
   sudo apt-get update
-  sudo apt-get -y install build-essential g++ flex bison gperf ruby perl libsqlite3-dev libfontconfig1-dev libicu-dev libfreetype6 libssl-dev libpng-dev libjpeg-dev libx11-dev libxext-dev ttf-mscorefonts-installer python2 python-as-python2
+  sudo apt-get -y install build-essential g++ flex bison gperf ruby perl libsqlite3-dev libfontconfig1-dev libicu-dev libfreetype6 libssl-dev libpng-dev libjpeg-dev libx11-dev libxext-dev ttf-mscorefonts-installer python2 python2-as-python
 fi
 
 echo 'Making sure we are on 2.1.1-multi git branck of bgrahamclickup/phantomjs branch'
