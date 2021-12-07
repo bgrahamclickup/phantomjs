@@ -1,13 +1,15 @@
 #!/bin/sh
-set xe
-echo 'Config'
+
+echo 'Building, testing, and local-installing openssl'
+
+echo 'Configuring openssl'
 ./config --prefix=$PWD/sslinstall --openssldir=$PWD/sslinstall
 
-echo 'Build'
+echo 'Building openssl'
 make
 
-echo 'Test'
+echo 'Testing openssl'
 make test
 
-echo 'Local-Install'
+echo 'Local installing openssl'
 make install
