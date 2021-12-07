@@ -2,15 +2,15 @@
 
 echo 'Building, testing, and local-installing openssl'
 
-if [ $(uname) == 'Darwin' ]; then
+if [ $(uname) = 'Darwin' ]; then
   echo 'Darwin detected, do you want to build intel64 or arm64 (i or a): \c'
 
   read type
 
-  if [ $type == 'i' ]; then
+  if [ $type = 'i' ]; then
     echo 'Configuring for Darwin Intel'
     ./Configure darwin64-x86_64-cc --prefix=$PWD/sslinstall --openssldir=$PWD/sslinstall
-  elif [ $type == 'a' ]; then
+  elif [ $type = 'a' ]; then
     echo 'Configuring for Darwin Arm'
      ./Configure enable-rc5 zlib no-asm darwin64-arm64-cc --prefix=$PWD/sslinstall --openssldir=$PWD/sslinstall
   else
