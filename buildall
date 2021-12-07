@@ -61,4 +61,4 @@ echo 'Building OpenSSL'
 $(cd ./openssl-1.0.2u && ./makeall)
 
 echo 'Building Phaontomjs'
-python build.py
+./build.py
