@@ -43,6 +43,18 @@ cp ./patched/Document.cpp ./src/qt/qtwebkit/Source/WebCore/dom/
 rm ./src/qt/qtwebkit/Source/WebCore/platform/graphics/SegmentedFontData.cpp
 cp ./patched/SegmentedFontData.cpp ./src/qt/qtwebkit/Source/WebCore/platform/graphics/
 
+rm ./src/qt/qtwebkit/Source/JavaScriptCore/API/JSStringRef.cpp
+cp ./patched/JSStringRef.cpp ./src/qt/qtwebkit/Source/JavaScriptCore/API/
+
+rm ./src/qt/qtwebkit/Source/JavaScriptCore/runtime/DateConversion.cpp
+cp ./patched/DateConversion.cpp ./src/qt/qtwebkit/Source/JavaScriptCore/runtime/
+
+rm ./src/qt/qtwebkit/Source/WebKit2/Shared/API/c/WkString.cpp
+cp ./patched/WkString.cpp ./src/qt/qtwebkit/Source/WebKit2/Shared/API/c/
+
+rm ./src/qt/qtwebkit/Source/WTF/wtf/TypeTraits.h
+cp ./patched/TypeTraits.h ./src/qt/qtwebkit/Source/WTF/wtf/
+
 echo 'Building OpenSSL'
 
 $(cd ./openssl-1.0.2u && ./makeall)
