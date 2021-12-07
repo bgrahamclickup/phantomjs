@@ -40,8 +40,8 @@ cp ./patched/JSStringRef.h ./src/qt/qtwebkit/Source/JavaScriptCore/API/
 rm ./src/qt/qtwebkit/Source/WebCore/dom/Document.cpp
 cp ./patched/Document.cpp ./src/qt/qtwebkit/Source/WebCore/dom/
 
-rm ./phantomjs-multi-arch/src/qt/qtwebkit/Source/WebCore/platform/graphics/SegmentedFontData.cpp
-cp ./patched/SegmentedFontData.cpp ./phantomjs-multi-arch/src/qt/qtwebkit/Source/WebCore/platform/graphics/
+rm ./src/qt/qtwebkit/Source/WebCore/platform/graphics/SegmentedFontData.cpp
+cp ./patched/SegmentedFontData.cpp ./src/qt/qtwebkit/Source/WebCore/platform/graphics/
 
 echo 'Building OpenSSL'
 
