@@ -1,0 +1,15 @@
+#!/bin/sh
+
+echo 'Configuring, building, testing, and local-installing openssl'
+
+echo 'Config'
+./config --prefix=$PWD/sslinstall --openssldir=$PWD/sslinstall
+
+echo 'Build'
+make
+
+echo 'Test'
+make test
+
+echo 'Local-Install'
+make install
