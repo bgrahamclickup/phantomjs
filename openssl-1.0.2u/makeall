@@ -22,9 +22,8 @@ else
   ./config --prefix=$PWD/sslinstall --openssldir=$PWD/sslinstall
 fi
 
-exit
 echo 'Building openssl'
-make
+make depend && make
 
 echo 'Testing openssl'
 make test
