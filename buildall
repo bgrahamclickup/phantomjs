@@ -10,8 +10,16 @@ if [ $? != 0 ]; then
 
   which yum
   if [ $? != 0 ]; then
-    echo 'yum not found...bailing as this is not a supported distro'
-    exit 1
+    echo 'yum not found...is this Darwin?'
+    
+    if [ $(uname) == 'Darwin' ]; then
+      echo 'Yep its Darwin...making sure xcode is installed via xcode-select --install'
+      xcode-select --install
+      echo 'This will fail if already install that is ok!'
+    else
+      echo 'Unsupport OS....bailing!'
+      exit 1
+    fi
   else
     sudo yum install gcc gcc-c++ make flex bison gperf ruby freetype-devel fontconfig-devel libicu-devel sqlite-devel libpng-devel libjpeg-devel
   fi
