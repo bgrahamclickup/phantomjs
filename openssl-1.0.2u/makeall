@@ -1,7 +1,5 @@
 #!/bin/sh
-
-echo 'Configuring, building, testing, and local-installing openssl'
-
+set xe
 echo 'Config'
 ./config --prefix=$PWD/sslinstall --openssldir=$PWD/sslinstall
 

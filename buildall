@@ -1,19 +1,51 @@
 #!/bin/sh
 set xe
-echo 'Building all'
 
-git checkout 2.1.1
+echo 'Installing dependecies for either redhat based distros or debian based'
+
+which apt-get
+
+if [ $? != 0 ]; then
+  echo 'apt not found checking yum'
+
+  which yum
+  if [ $? != 0 ]; then
+    echo 'yum not found...bailing as this is not a supported distro'
+    exit 1
+  else
+    sudo yum install gcc gcc-c++ make flex bison gperf ruby freetype-devel fontconfig-devel libicu-devel sqlite-devel libpng-devel libjpeg-devel
+  fi
+else
+  sudo apt-get install build-essential g++ flex bison gperf ruby perl libsqlite3-dev libfontconfig1-dev libicu-dev libfreetype6 libssl-dev libpng-dev libjpeg-dev python libx11-dev libxext-dev ttf-mscorefonts-installer
+fi
+
+echo 'Making sure we are on 2.1.1-multi git branck of bgrahamclickup/phantomjs branch'
+
+git rev-parse --abbrev-ref HEAD | grep '2.1.1-multi' &> /dev/null
+if [ $? != 0 ]; then
+  echo 'Not on right branch!!!'
+  exit 1
+fi
+
+echo 'Initing submodules'
+
 git submodule init
 git submodule update
 
+echo 'patching qt'
+
+rm ./src/qt/qtwebkit/Source/JavaScriptCore/API/JSStringRef.h
+cp ./patched/JSStringRef.h ./src/qt/qtwebkit/Source/JavaScriptCore/API/
+
+rm ./src/qt/qtwebkit/Source/WebCore/dom/Document.cpp
+cp ./patched/Document.cpp ./src/qt/qtwebkit/Source/WebCore/dom/
+
+rm ./phantomjs-multi-arch/src/qt/qtwebkit/Source/WebCore/platform/graphics/SegmentedFontData.cpp
+cp ./patched/SegmentedFontData.cpp ./phantomjs-multi-arch/src/qt/qtwebkit/Source/WebCore/platform/graphics/
+
 echo 'Building OpenSSL'
 
-#$(cd ./openssl-1.0.2u && ./makeall)
-
-if $? != 0; then
-    echo 'Building SSL Fail!!!'
-    exit 1
-fi
+$(cd ./openssl-1.0.2u && ./makeall)
 
 echo 'Building Phaontomjs'
-#python build.py
+python build.py
