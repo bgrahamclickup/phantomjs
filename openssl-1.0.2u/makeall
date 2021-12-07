@@ -12,7 +12,7 @@ if [ $(uname) == 'Darwin' ]; then
     ./Configure darwin64-x86_64-cc --prefix=$PWD/sslinstall --openssldir=$PWD/sslinstall
   elif [ $type == 'a' ]; then
     echo 'Configuring for Darwin Arm'
-    ./config --prefix=$PWD/sslinstall --openssldir=$PWD/sslinstall enable-rc5 zlib darwin64-arm64-cc no-asm
+     ./Configure enable-rc5 zlib no-asm darwin64-arm64-cc --prefix=$PWD/sslinstall --openssldir=$PWD/sslinstall
   else
     echo 'Bad input...bailing'
     exit 1
