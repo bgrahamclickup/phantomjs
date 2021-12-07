@@ -52,8 +52,8 @@ cp ./patched/JSStringRef.cpp ./src/qt/qtwebkit/Source/JavaScriptCore/API/
 rm ./src/qt/qtwebkit/Source/JavaScriptCore/runtime/DateConversion.cpp
 cp ./patched/DateConversion.cpp ./src/qt/qtwebkit/Source/JavaScriptCore/runtime/
 
-rm ./src/qt/qtwebkit/Source/WebKit2/Shared/API/c/WkString.cpp
-cp ./patched/WkString.cpp ./src/qt/qtwebkit/Source/WebKit2/Shared/API/c/
+rm ./src/qt/qtwebkit/Source/WebKit2/Shared/API/c/WKString.cpp
+cp ./patched/WKString.cpp ./src/qt/qtwebkit/Source/WebKit2/Shared/API/c/
 
 rm ./src/qt/qtwebkit/Source/WTF/wtf/TypeTraits.h
 cp ./patched/TypeTraits.h ./src/qt/qtwebkit/Source/WTF/wtf/
